@@ -254,12 +254,13 @@ export async function handleComment({ op, repo, rkey }: HandlerInput) {
     }
 
     const bskyProfile = await getBlueskyProfile(repo);
+    const postUrl = `https://frontpage.fyi/post/${comment.postUri.host}/${comment.postUri.rkey}`;
     await sendDiscordMessage({
       embeds: [
         {
           title: `New ${comment.$type} on Frontpage`,
           description: comment.content,
-          url: `https://frontpage.fyi/post/${repo}/${rkey}`,
+          url: `${postUrl}/${repo}/${rkey}`,
           color: 10181046,
           author: bskyProfile
             ? {
@@ -268,14 +269,14 @@ export async function handleComment({ op, repo, rkey }: HandlerInput) {
                 url: `https://frontpage.fyi/profile/${bskyProfile.handle}`,
               }
             : undefined,
-          fields: [
-            {
-              name: "Context",
-              value: comment.parentUri
-                ? `https://frontpage.fyi/post/${comment.postUri.host}/${comment.postUri.rkey}/${comment.parentUri.host}/${comment.parentUri.rkey}`
-                : `https://frontpage.fyi/post/${comment.postUri.host}/${comment.postUri.rkey}`,
-            },
-          ],
+          fields: comment.parentUri
+            ? [
+                {
+                  name: "Context",
+                  value: `${postUrl}/${comment.parentUri.host}/${comment.parentUri.rkey}`,
+                },
+              ]
+            : [],
         },
       ],
     });
