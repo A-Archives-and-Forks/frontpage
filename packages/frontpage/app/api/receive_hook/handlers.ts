@@ -252,6 +252,33 @@ export async function handleComment({ op, repo, rkey }: HandlerInput) {
         });
       }
     }
+
+    const bskyProfile = await getBlueskyProfile(repo);
+    await sendDiscordMessage({
+      embeds: [
+        {
+          title: `New ${comment.$type} on Frontpage`,
+          description: comment.content,
+          url: `https://frontpage.fyi/post/${repo}/${rkey}`,
+          color: 10181046,
+          author: bskyProfile
+            ? {
+                name: `@${bskyProfile.handle}`,
+                icon_url: bskyProfile.avatar,
+                url: `https://frontpage.fyi/profile/${bskyProfile.handle}`,
+              }
+            : undefined,
+          fields: [
+            {
+              name: "Context",
+              value: comment.parentUri
+                ? `https://frontpage.fyi/post/${comment.postUri.host}/${comment.postUri.rkey}/${comment.parentUri.host}/${comment.parentUri.rkey}`
+                : `https://frontpage.fyi/post/${comment.postUri.host}/${comment.postUri.rkey}`,
+            },
+          ],
+        },
+      ],
+    });
   } else if (op.action === "delete") {
     await dbComment.deleteComment({ rkey, authorDid: repo });
   }
