@@ -131,7 +131,7 @@ export const createReport = async ({
   await sendDiscordMessage({
     embeds: [
       {
-        title: "New report on Frontpage",
+        title: "🚨🚨 New report on Frontpage",
         description: creatorComment ?? reportReason ?? "No reason provided",
         url: `${rootUrl}/moderation?status=pending`,
         color: 10181046,
