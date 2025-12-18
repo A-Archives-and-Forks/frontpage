@@ -5,7 +5,7 @@ import { loginWithIdentifierAction, loginWithPdsAction } from "./action";
 import { Input } from "@/lib/components/ui/input";
 import { Button } from "@/lib/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/lib/components/ui/alert";
-import { CrossCircledIcon } from "@radix-ui/react-icons";
+import { CrossCircledIcon, OpenInNewWindowIcon } from "@radix-ui/react-icons";
 import {
   Dialog,
   DialogContent,
@@ -15,42 +15,48 @@ import {
   DialogTrigger,
 } from "@/lib/components/ui/dialog";
 
-const DEFAULT_PDS_URL =
-  process.env.NEXT_PUBLIC_DEFAULT_PDS_HOST || "bsky.social";
+import { Field } from "@/lib/components/ui/field";
+import { Separator } from "@/lib/components/ui/separator";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/lib/components/ui/accordion";
+import { type ErrorReason } from "@/lib/auth-sign-in";
+
+const DEFAULT_PDS = process.env.NEXT_PUBLIC_DEFAULT_PDS_HOST
+  ? {
+      host: process.env.NEXT_PUBLIC_DEFAULT_PDS_HOST,
+      label: process.env.NEXT_PUBLIC_DEFAULT_PDS_HOST,
+    }
+  : {
+      host: "bsky.social",
+      label: "Bluesky",
+    };
 
 export function LoginForm() {
   const [pdsDialogOpen, setPdsDialogOpen] = useState(false);
-  const [pdsState, pdsAction, isPdsPending] = useActionState(
-    loginWithPdsAction,
-    null,
-  );
 
   return (
-    <div className="space-y-3">
-      <form className="contents" action={pdsAction}>
-        <Button
-          className="w-full"
-          type="submit"
-          name="pdsUrl"
-          value={DEFAULT_PDS_URL}
-          disabled={isPdsPending}
-          size="lg"
-        >
-          Login or signup with {DEFAULT_PDS_URL}
-        </Button>
-      </form>
+    <div className="flex flex-col gap-4">
+      <IdentifierForm />
 
+      <Separator />
+
+      <DefaultPdsSignupButton />
       <Dialog open={pdsDialogOpen} onOpenChange={setPdsDialogOpen}>
         <DialogTrigger asChild>
-          <Button className="w-full" variant="outline">
-            Continue with another PDS
+          <Button className="w-full" variant="ghost">
+            Sign up with a PDS
           </Button>
         </DialogTrigger>
         <DialogContent className="top-1/3">
           <DialogHeader>
-            <DialogTitle>Login with another PDS</DialogTitle>
+            <DialogTitle>Login with PDS</DialogTitle>
             <DialogDescription>
-              Enter the URL of your PDS to login.
+              Enter the URL of your PDS to login or sign up. By continuing, you
+              accept the Terms of Service of your chosen PDS.
             </DialogDescription>
           </DialogHeader>
 
@@ -58,38 +64,73 @@ export function LoginForm() {
         </DialogContent>
       </Dialog>
 
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button className="w-full" variant="outline">
-            Continue with @handle
-          </Button>
-        </DialogTrigger>
+      <Accordion type="multiple">
+        <AccordionItem value="internet-handle-help">
+          <AccordionTrigger>What is an internet handle?</AccordionTrigger>
+          <AccordionContent className="text-pretty prose dark:prose-invert prose-sm">
+            <p>
+              Some open social apps, such as Bluesky, set you up with a free
+              domain and open social hosting when you sign up. You might not
+              have realized that, but if you sign up on one of those services,
+              the username you get is a domain, such as you.bsky.social.
+              That&apos;s an internet handle.
+            </p>
+            <p>
+              If you don&apos;t have one, choose &quot;Continue with your
+              PDS&quot; and select a service to login or sign up.
+            </p>
+            <p>
+              Read more at{" "}
+              <a
+                href="https://internethandle.org"
+                target="_blank"
+                rel="noreferrer"
+              >
+                internethandle.org <OpenInNewWindowIcon className="inline" />
+              </a>
+              .
+            </p>
+          </AccordionContent>
+        </AccordionItem>
 
-        <DialogContent className="top-1/3">
-          <DialogHeader>
-            <DialogTitle>Login with handle</DialogTitle>
-            <DialogDescription>
-              Enter your Bluesky/AT Protocol handle to login.
-            </DialogDescription>
-          </DialogHeader>
-
-          <IdentifierForm />
-        </DialogContent>
-      </Dialog>
-
-      <LoginError errorState={pdsState?.error} />
+        <AccordionItem value="pds-help">
+          <AccordionTrigger>What is my PDS?</AccordionTrigger>
+          <AccordionContent className="text-pretty prose dark:prose-invert prose-sm">
+            <p>
+              Your Personal Data Server (PDS) is a service that stores your
+              social data and allows you to interact with open social apps on AT
+              Protocol.
+            </p>
+            <p>
+              If you don&apos;t have a specific PDS, it&apos;s best to continue
+              with Bluesky using the button above. You can always move to a
+              different PDS later.
+            </p>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 }
 
-function LoginError({ errorState }: { errorState?: string }) {
-  if (!errorState) return null;
+function LoginError({
+  error,
+  children,
+}: {
+  error: string;
+  children?: React.ReactNode;
+}) {
   return (
-    <Alert variant="destructive">
-      <CrossCircledIcon className="h-4 w-4" />
-      <AlertTitle>Login error</AlertTitle>
-      <AlertDescription>{errorState}</AlertDescription>
-    </Alert>
+    <div>
+      <Alert variant="destructive">
+        <CrossCircledIcon className="h-4 w-4" />
+        <AlertTitle>{error ?? "Login error"}</AlertTitle>
+
+        <AlertDescription>
+          {children ?? "Please try again or use a different login method."}
+        </AlertDescription>
+      </Alert>
+    </div>
   );
 }
 
@@ -99,7 +140,7 @@ function IdentifierForm() {
 
   return (
     <form
-      className="space-y-6"
+      className="flex flex-col gap-2"
       action={identifierAction}
       onSubmit={(event) => {
         event.preventDefault();
@@ -108,18 +149,80 @@ function IdentifierForm() {
         });
       }}
     >
-      <Input
-        id="identifier"
-        name="identifier"
-        required
-        placeholder="eg. dril.bsky.social"
-      />
-
-      <Button type="submit" className="w-full" disabled={isIdentifierPending}>
-        Login
+      <Field>
+        <Input
+          id="identifier"
+          name="identifier"
+          required
+          placeholder="eg. dril.bsky.social"
+        />
+      </Field>
+      <Button type="submit" disabled={isIdentifierPending} className="w-full">
+        Login with internet handle
       </Button>
 
-      <LoginError errorState={identifierState?.error} />
+      {identifierState?.error ? (
+        <IdentifierFormError reason={identifierState.error} />
+      ) : null}
+    </form>
+  );
+}
+
+function IdentifierFormError({ reason }: { reason: ErrorReason }) {
+  if (reason === "DID_NOT_FOUND") {
+    return (
+      <LoginError error="Internet handle not found">
+        <p>
+          There was either a typo in your internet handle or a temporary issue
+          with the service.
+        </p>
+      </LoginError>
+    );
+  }
+
+  if (reason === "PDS_NOT_FOUND") {
+    return (
+      <LoginError error="PDS not found">
+        <p>
+          The Personal Data Server (PDS) hosting your internet handle is either
+          temporarily down or there is a network issue.
+        </p>
+      </LoginError>
+    );
+  }
+
+  // TODO: Handle other error reasons
+
+  return (
+    <LoginError error="Login error">
+      <div className="prose dark:prose-invert prose-sm">
+        <p>An unexpected error occurred. Please try again later.</p>
+        <p>Error code: {reason}</p>
+      </div>
+    </LoginError>
+  );
+}
+
+function DefaultPdsSignupButton() {
+  const [pdsState, pdsAction, isPdsPending] = useActionState(
+    loginWithPdsAction,
+    null,
+  );
+
+  return (
+    <form className="contents" action={pdsAction}>
+      <Button
+        type="submit"
+        className="w-full"
+        variant="outline"
+        disabled={isPdsPending}
+        name="pdsUrl"
+        value={`https://${DEFAULT_PDS.host}`}
+      >
+        Sign up with {DEFAULT_PDS.label}
+      </Button>
+
+      {pdsState?.error ? <LoginError error={pdsState?.error} /> : null}
     </form>
   );
 }
@@ -140,12 +243,16 @@ function PdsForm() {
         });
       }}
     >
-      <Input name="pdsUrl" placeholder="eg. bsky.social" />
+      <Input
+        name="pdsUrl"
+        placeholder="eg. bsky.social"
+        defaultValue={DEFAULT_PDS.host}
+      />
       <Button type="submit" className="w-full" disabled={isPdsPending}>
-        Login
+        Continue to PDS sign up
       </Button>
 
-      <LoginError errorState={pdsState?.error} />
+      {pdsState?.error ? <LoginError error={pdsState?.error} /> : null}
     </form>
   );
 }
