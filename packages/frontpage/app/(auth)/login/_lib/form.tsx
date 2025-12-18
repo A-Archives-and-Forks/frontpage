@@ -155,6 +155,7 @@ function IdentifierForm() {
           name="identifier"
           required
           placeholder="eg. dril.bsky.social"
+          aria-label="Internet handle"
         />
       </Field>
       <Button type="submit" disabled={isIdentifierPending} className="w-full">
@@ -247,6 +248,7 @@ function PdsForm() {
         name="pdsUrl"
         placeholder="eg. bsky.social"
         defaultValue={DEFAULT_PDS.host}
+        aria-label="Personal Data Server host"
       />
       <Button type="submit" className="w-full" disabled={isPdsPending}>
         Continue to PDS sign up
