@@ -1,5 +1,7 @@
 # Frontpage Dev Environment
 
+> _"It's as simple as that."_
+
 Docker compose file that runs the required peices of infrastructure for frontpage locally.
 
 > [!NOTE]
