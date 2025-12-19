@@ -3,11 +3,14 @@ import { getVerifiedHandle } from "@/lib/data/atproto/identity";
 import Link from "next/link";
 
 export async function UserHandle({ userDid }: { userDid: DID }) {
-  const handle = (await getVerifiedHandle(userDid)) ?? userDid;
+  const handle = await getVerifiedHandle(userDid);
 
   return (
-    <Link href={`/profile/${handle}`} className="underline text-blue-500">
-      {handle}
+    <Link
+      href={`/profile/${handle ?? userDid}`}
+      className="underline text-blue-500"
+    >
+      {handle ?? userDid}
     </Link>
   );
 }

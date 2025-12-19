@@ -256,6 +256,9 @@ export const OauthAuthRequest = sqliteTable("oauth_auth_requests", {
 export const OauthSession = sqliteTable("oauth_sessions", {
   sessionId: integer("id").primaryKey(),
   did: did("did").notNull(),
+  /**
+   * @deprecated Don't use this, it's just set to "" for all new rows
+   */
   username: text("username").notNull(),
   iss: text("iss").notNull(),
   accessToken: text("access_token").notNull(),
