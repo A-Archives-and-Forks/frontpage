@@ -4,7 +4,6 @@ import { type Metadata } from "next";
 import { getVerifiedHandle } from "@/lib/data/atproto/identity";
 import { type PostPageParams, getPostPageData } from "./_lib/page-data";
 import { LinkAlternateAtUri } from "@/lib/components/link-alternate-at";
-import { nsids } from "@/lib/data/atproto/repo";
 import { PrefetchOgImage } from "@/lib/og-client";
 
 function getPagePath(params: PostPageParams) {
@@ -53,7 +52,7 @@ export default async function PostPage(props: {
     <>
       <LinkAlternateAtUri
         authority={authorDid}
-        collection={nsids.FyiUnravelFrontpagePost}
+        collection={post.collection}
         rkey={post.rkey}
       />
       <PrefetchOgImage path={`${getPagePath(params)}/og-image`} />

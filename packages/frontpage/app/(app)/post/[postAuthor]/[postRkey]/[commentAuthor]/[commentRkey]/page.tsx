@@ -4,7 +4,6 @@ import { type Metadata } from "next";
 import { getVerifiedHandle } from "@/lib/data/atproto/identity";
 import { type CommentPageParams, getCommentPageData } from "./_lib/page-data";
 import { LinkAlternateAtUri } from "@/lib/components/link-alternate-at";
-import { nsids } from "@/lib/data/atproto/repo";
 import { PrefetchOgImage } from "@/lib/og-client";
 
 function truncateText(text: string, maxLength: number) {
@@ -67,7 +66,7 @@ export default async function CommentPage(props: {
     <>
       <LinkAlternateAtUri
         authority={comment.authorDid}
-        collection={nsids.FyiUnravelFrontpageComment}
+        collection={comment.collection}
         rkey={comment.rkey}
       />
       <PrefetchOgImage path={`${getPagePath(params)}/og-image`} />

@@ -20,10 +20,7 @@ import {
 } from "./triggers";
 import type { CommentCollectionType } from "../atproto/repo";
 
-type CommentRow = Omit<
-  InferSelectModel<typeof schema.Comment>,
-  "cid" | "collection"
-> & {
+type CommentRow = Omit<InferSelectModel<typeof schema.Comment>, "cid"> & {
   cid: string | null;
 };
 
@@ -90,6 +87,7 @@ export const getCommentsForPost = cache(async (postId: number) => {
       rank: schema.CommentAggregates.rank,
       userHasVoted: hasVoted.userHasVoted,
       parentCommentId: schema.Comment.parentCommentId,
+      collection: schema.Comment.collection,
     })
     .from(schema.Comment)
     .where(eq(schema.Comment.postId, postId))
