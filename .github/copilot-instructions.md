@@ -70,3 +70,7 @@ Trust these notes before searching; only explore if something here is missing or
 
 ## File listing (root, high level)
 `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `README.md`, `SECURITY.md`, `LICENSE`, `.nvmrc`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `turbo.json`, `Cargo.toml`, `lexicons/`, `packages/`, `packages-rs/`, `.github/workflows/`.
+
+## Next.js conventions
+- Ensure that Next.js page props and `generateMetadata` functions are typed using the `PageProps` generic for better type safety and clarity.
+- Ensure that Next.js route handler functions receive context (the second argument) as generic type `RouteHandlerContext` for proper typing of request and params.
