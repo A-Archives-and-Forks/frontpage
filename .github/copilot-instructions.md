@@ -40,15 +40,12 @@ Trust these notes before searching; only explore if something here is missing or
 
 ## Common commands (run from repo root unless noted)
 - **Format check**: `pnpm exec prettier --check .`
-- **Lint**: `pnpm exec turbo run lint` (or `--filter <package>` to narrow). Frontpage package also supports `pnpm --filter frontpage run lint`.
-- **Tests**: `pnpm exec turbo run test` (Vitest). Per-package: `pnpm --filter frontpage run test`, etc.
-- **Type-check**: `pnpm exec turbo run type-check` or `pnpm --filter frontpage run type-check`.
-- **Build**:
-  - Frontpage app: `pnpm --filter frontpage run build` (Turbopack; uses `NODE_OPTIONS=--use-openssl-ca` in script).
-  - atproto-browser/unravel: `pnpm --filter <pkg> run build`.
-  - Frontpage ATProto client: `pnpm --filter @repo/frontpage-atproto-client run build` (tsc).
+- **Lint**: `pnpm exec turbo run lint` (or `--filter <package>` to narrow).
+- **Tests**: `pnpm exec turbo run test` (or `--filter <package>` to narrow)
+- **Type-check**: `pnpm exec turbo run type-check` (or `--filter <package>` to narrow)
+- **Build**: `pnpm exec turbo run build` (or `--filter <package>` to narrow)
 - **Dev servers**:
-  - Frontpage app: `pnpm --filter frontpage exec turbo dev` (or `pnpm --filter frontpage run dev`). For production DB access, team uses `dev-1pw` which relies on 1Password CLI and `.env.1pw`.
+  - Frontpage app: `pnpm exec turbo dev --filter frontpage`. For production DB access, team uses `dev-1pw` which relies on 1Password CLI and `.env.1pw`.
   - atproto-browser/unravel: `pnpm --filter <pkg> run dev`.
 - **DB / Drizzle (frontpage)**: run inside `packages/frontpage`: `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:push`, `pnpm db:studio`, `pnpm db:pull`. Scripts set `NODE_OPTIONS=--use-openssl-ca`.
 - **Lexicon tooling**: From root, install Go `glot` (see workflow) then `glot lint lexicons/fyi/frontpage` / `glot compat lexicons/fyi/frontpage` when touching lexicons.
@@ -58,7 +55,7 @@ Trust these notes before searching; only explore if something here is missing or
 - Follow `packages/frontpage/local-infra/README.md`:
   - `docker-compose up` to run PLC, PDS, Jetstream, Drainpipe, Turso, Caddy, cloudflared tunnel.
   - Install Unravel CA (`frontpage-local-infra_caddy_data/pki/authorities/unravel/root.crt`) and set `NODE_OPTIONS=--use-openssl-ca` for Node apps (frontpage scripts already set this).
-  - Generate `.env.local` via `pnpm --filter=frontpage run generate-local-env`, run `pnpm db:migrate`, start app with `pnpm --filter frontpage exec turbo dev` (or `pnpm --filter frontpage run dev`) from the repo root, grab cloudflared tunnel URL for access.
+  - Generate `.env.local` via `pnpm --filter=frontpage run generate-local-env`, run `pnpm db:migrate`, start app with `pnpm exec turbo dev --filter frontpage` from the repo root, grab cloudflared tunnel URL for access.
   - Troubleshooting steps for docker platforms, SSL renewal, Cloudflare 502, Windows WSL reset are in the README.
 
 ## Notes / tips
