@@ -23,6 +23,7 @@ import { ReportDialogDropdownButton } from "../../_components/report-dialog";
 import { reportUserAction } from "@/lib/components/user-hover-card";
 import { type Metadata } from "next";
 import { LinkAlternateAtUri } from "@/lib/components/link-alternate-at";
+import { getSession } from "@/lib/auth";
 
 export async function generateMetadata(
   props: PageProps<"/profile/[user]">,
@@ -74,6 +75,8 @@ export default async function Profile(props: PageProps<"/profile/[user]">) {
     return b.createdAt.getTime() - a.createdAt.getTime();
   });
 
+  const session = await getSession();
+
   return (
     <>
       <LinkAlternateAtUri authority={did} />
@@ -83,11 +86,13 @@ export default async function Profile(props: PageProps<"/profile/[user]">) {
           <h1 className="md:text-2xl font-bold">
             {userHandle ?? "handle.invalid"}
           </h1>
-          <EllipsisDropdown aria-label="User actions">
-            <ReportDialogDropdownButton
-              reportAction={reportUserAction.bind(null, { did })}
-            />
-          </EllipsisDropdown>
+          {session !== null && session.did !== did ? (
+            <EllipsisDropdown aria-label="User actions">
+              <ReportDialogDropdownButton
+                reportAction={reportUserAction.bind(null, { did })}
+              />
+            </EllipsisDropdown>
+          ) : null}
         </div>
       </div>
       <Tabs defaultValue="overview">
