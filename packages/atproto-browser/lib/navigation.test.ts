@@ -26,9 +26,12 @@ const PATH_SUFFIXES = [
   "/collection/rkey",
 ];
 
-const makeValidCases = (authority: string, expectedAuthority?: string) =>
+const makeValidCases = (
+  authority: string,
+  expectedAuthority: string = authority,
+) =>
   PATH_SUFFIXES.flatMap((suffix) => {
-    const result = `/at/${expectedAuthority ?? authority}${suffix}`;
+    const result = `/at/${expectedAuthority}${suffix}`;
     return [
       [`${authority}${suffix}`, result],
       [`at://${authority}${suffix}`, result],
@@ -39,6 +42,8 @@ const VALID_CASES = [
   ...makeValidCases("example.com"),
   ...makeValidCases("did:plc:hello"),
   ...makeValidCases("did:web:hello"),
+  ...makeValidCases("did:web:example.com"),
+  ...makeValidCases("did:web:foo.example.example.com"),
   // Unicode should be uri encode but preserved, we handle punycode transformation within the fetch of the page not on navigation
   ...makeValidCases("mañana.com", "ma%C3%B1ana.com"),
   ...makeValidCases("ma%C3%B1ana.com"),

@@ -116,8 +116,8 @@ async function getAtUriFromHttp(url: string): Promise<UriParseResult> {
 }
 
 export const ATP_URI_REGEX =
-  // proto-    --did--------------   name   --path----   --query--   --hash--
-  /^(at:\/\/)?((?:did:[a-z0-9:%-]+)|(?:.*))(\/[^?#\s]*)?(\?[^#\s]+)?(#[^\s]+)?$/i;
+  // proto-    --------host--------   --path----   --query--   --hash--
+  /^(at:\/\/)?([^/?#\s]+)(\/[^?#\s]*)?(\?[^#\s]+)?(#[^\s]+)?$/i;
 
 /**
  * Parses an AT URI but allows the host to be a unicode handle.
