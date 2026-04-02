@@ -9,11 +9,12 @@ import {
 } from "react";
 import { useInView } from "react-intersection-observer";
 import { mutate, SWRConfig } from "swr";
+import { Spinner } from "@/lib/components/ui/spinner";
 
 export type Page<TCursor> = {
   content: ReactNode;
   nextCursor: TCursor | null;
-  pageSize: number;
+  itemCount: number;
 };
 
 type Props<TCursor> = {
@@ -40,7 +41,7 @@ export function InfiniteList<TCursor>({ fallback, ...props }: Props<TCursor>) {
         },
       }}
     >
-      <InfinteListInner {...props} />
+      <InfiniteListInner {...props} />
     </SWRConfig>
   );
 }
@@ -55,7 +56,7 @@ export const InfiniteListContext = createContext<{
   },
 });
 
-function InfinteListInner<TCursor>({
+function InfiniteListInner<TCursor>({
   getMoreItemsAction,
   emptyMessage,
   cacheKey,
@@ -63,7 +64,7 @@ function InfinteListInner<TCursor>({
 }: Omit<Props<TCursor>, "fallback">) {
   const { data, size, setSize, mutate } = useSWRInfinite(
     (_, previousPageData: Page<TCursor> | null) => {
-      if (previousPageData && !previousPageData.pageSize) return null; // reached the end
+      if (previousPageData && !previousPageData.itemCount) return null; // reached the end
       return [cacheKey, previousPageData?.nextCursor ?? null];
     },
     ([_, cursor]) => {
@@ -104,11 +105,19 @@ function InfinteListInner<TCursor>({
             </InfiniteListContext.Provider>
 
             {indx === pages.length - 1 ? (
-              page.pageSize === 0 ? (
+              page.nextCursor ? (
+                <div
+                  ref={inViewRef}
+                  className="flex flex-col items-center gap-2 py-4 text-gray-400"
+                >
+                  <Spinner className="h-5 w-5" />
+                  <p className="text-sm">Loading more posts...</p>
+                </div>
+              ) : page.itemCount === 0 && indx === 0 ? (
                 <p className="text-center text-gray-400">{emptyMessage}</p>
               ) : (
-                <p ref={inViewRef} className="text-center text-gray-400">
-                  Loading...
+                <p className="py-4 text-center text-sm text-gray-400">
+                  You&apos;ve reached the end
                 </p>
               )
             ) : null}

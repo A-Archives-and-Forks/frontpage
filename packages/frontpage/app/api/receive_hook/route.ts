@@ -4,9 +4,17 @@ import { Commit } from "@/lib/data/atproto/event";
 import { getPdsUrl } from "@/lib/data/atproto/did";
 import { handleComment, handlePost, handleVote } from "./handlers";
 import { eq } from "drizzle-orm";
-import { exhaustiveCheck } from "@/lib/utils";
 import { nsids } from "@/lib/data/atproto/repo";
 import { timingSafeEqual } from "node:crypto";
+
+const knownCollections = [
+  nsids.FyiUnravelFrontpagePost,
+  nsids.FyiFrontpageFeedPost,
+  nsids.FyiUnravelFrontpageComment,
+  nsids.FyiFrontpageFeedComment,
+  nsids.FyiUnravelFrontpageVote,
+  nsids.FyiFrontpageFeedVote,
+] as const;
 
 const EXPECTED_AUTH_HEADER = Buffer.from(
   `Bearer ${process.env.DRAINPIPE_CONSUMER_SECRET}`,
@@ -65,8 +73,22 @@ export async function POST(request: Request) {
         break;
       }
 
-      default:
-        exhaustiveCheck(collection, `Unknown collection ${JSON.stringify(op)}`);
+      default: {
+        if (
+          knownCollections.includes(
+            collection as (typeof knownCollections)[number],
+          )
+        ) {
+          // Known collection without a handler — this is a programming error.
+          // Throw to prevent the offset from being committed so the op
+          // can be reprocessed after a code fix.
+          throw new Error(
+            `Unhandled known collection: ${collection} in op ${JSON.stringify(op)}`,
+          );
+        }
+        // Unknown collections are expected (e.g. user-created records)
+        console.log(`Skipping unknown collection: ${collection}`);
+      }
     }
   });
 
