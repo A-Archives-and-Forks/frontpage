@@ -4,14 +4,18 @@ import type { NextRequest } from "next/server";
 import * as schema from "@/lib/schema";
 import { lt, inArray } from "drizzle-orm";
 import { timingSafeEqual } from "node:crypto";
-
-const EXPECTED_AUTH_HEADER = Buffer.from(`Bearer ${process.env.CRON_SECRET}`);
-
+import { serverConfig } from "@/lib/config/server-config";
 export async function GET(request: NextRequest) {
+  if (!serverConfig.CRON_SECRET) {
+    throw new Error("CRON_SECRET is not set");
+  }
   const authHeader = request.headers.get("authorization");
   if (
     !authHeader ||
-    !timingSafeEqual(Buffer.from(authHeader), EXPECTED_AUTH_HEADER)
+    !timingSafeEqual(
+      Buffer.from(authHeader),
+      Buffer.from(`Bearer ${serverConfig.CRON_SECRET}`),
+    )
   ) {
     await sendDiscordMessage({
       embeds: [
