@@ -56,7 +56,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   return NextResponse.json(skeleton, {
     headers: {
       "Cache-Control": `public, max-age=${SKELETON_CACHE_MAX_AGE_SECONDS}, stale-while-revalidate=${SKELETON_SWR_SECONDS}`,
-      Vary: "Authorization",
     },
   });
 }
