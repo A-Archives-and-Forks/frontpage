@@ -6,8 +6,11 @@ import { type DID } from "../data/atproto/did";
 import { createNotification } from "../data/db/notification";
 import { invariant } from "../utils";
 import { TID } from "@atproto/common-web";
+import { l } from "@atproto/lex";
+import * as com from "@repo/frontpage-atproto-client/com";
+import * as fyi from "@repo/frontpage-atproto-client/fyi";
 import { after } from "next/server";
-import { getAtprotoClient, nsids } from "../data/atproto/repo";
+import { getAtprotoClient } from "../data/atproto/repo";
 
 export type ApiCreateCommentInput = {
   // TODO: Use strongRef type for parent and post
@@ -37,32 +40,33 @@ export async function createComment({
       parent,
       post,
       status: "pending",
-      collection: nsids.FyiUnravelFrontpageComment,
+      collection: fyi.unravel.frontpage.comment.$type,
     });
 
     invariant(dbCreatedComment, "Failed to insert comment in database");
 
+    // TODO: We should create this up front to take advantage of validation, but it requires some refactors that relate to fixing bugs with handling both lexicon types.
+    // Will be handled in #327
+    const record = fyi.unravel.frontpage.comment.$build({
+      parent: parent
+        ? com.atproto.repo.strongRef.$build({
+            uri: `at://${parent.authorDid}/${fyi.unravel.frontpage.comment.$type}/${parent.rkey}`,
+            cid: parent.cid,
+          })
+        : undefined,
+      post: com.atproto.repo.strongRef.$build({
+        uri: `at://${post.authorDid}/${fyi.unravel.frontpage.post.$type}/${post.rkey}`,
+        cid: post.cid,
+      }),
+      content: sanitizedContent,
+      createdAt: l.currentDatetimeString(),
+    });
+
     after(() =>
-      getAtprotoClient().fyi.unravel.frontpage.comment.create(
-        {
-          repo: user.did,
-          rkey,
-        },
-        {
-          parent: parent
-            ? {
-                cid: parent.cid,
-                uri: `at://${parent.authorDid}/${nsids.FyiUnravelFrontpageComment}/${parent.rkey}`,
-              }
-            : undefined,
-          post: {
-            cid: post.cid,
-            uri: `at://${post.authorDid}/${nsids.FyiUnravelFrontpagePost}/${post.rkey}`,
-          },
-          content: sanitizedContent,
-          createdAt: new Date().toISOString(),
-        },
-      ),
+      getAtprotoClient().create(fyi.unravel.frontpage.comment, record, {
+        repo: user.did,
+        rkey,
+      }),
     );
 
     const didToNotify = parent ? parent.authorDid : post.authorDid;
@@ -93,7 +97,7 @@ export async function deleteComment({
 
   try {
     after(() =>
-      getAtprotoClient().fyi.unravel.frontpage.comment.delete({
+      getAtprotoClient().delete(fyi.unravel.frontpage.comment, {
         repo: authorDid,
         rkey,
       }),

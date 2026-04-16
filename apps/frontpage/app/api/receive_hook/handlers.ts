@@ -4,7 +4,6 @@ import { getDidFromHandleOrDid } from "@/lib/data/atproto/identity";
 import {
   type CommentCollectionType,
   getAtprotoClient,
-  nsids,
   type VoteCollectionType,
   type PostCollectionType,
 } from "@/lib/data/atproto/repo";
@@ -16,10 +15,7 @@ import { getBlueskyProfile } from "@/lib/data/user";
 import { sendDiscordMessage } from "@/lib/discord";
 import { invariant } from "@/lib/utils";
 import { AtUri } from "@atproto/syntax";
-import {
-  FyiFrontpageFeedPost,
-  FyiFrontpageRichtextBlock,
-} from "@repo/frontpage-atproto-client";
+import * as fyi from "@repo/frontpage-atproto-client/fyi";
 import type z from "zod";
 
 type HandlerInput = {
@@ -53,27 +49,42 @@ async function hydratePost(
   $type: PostCollectionType;
 }> {
   const atproto = await getAtprotoClientFromRepo(repo);
-  if (collection === nsids.FyiUnravelFrontpagePost) {
-    const record = await atproto.fyi.unravel.frontpage.post.get({ repo, rkey });
+  if (collection === fyi.unravel.frontpage.post.$type) {
+    const record = await atproto.get(fyi.unravel.frontpage.post, {
+      repo,
+      rkey,
+    });
+    const cid = record.cid;
+    invariant(
+      cid,
+      `Missing CID for frontpage post at://${repo}/${collection}/${rkey}`,
+    );
     return {
       title: record.value.title,
       url: record.value.url,
       createdAt: new Date(record.value.createdAt),
-      cid: record.cid,
+      cid,
       $type: record.value.$type,
     };
-  } else if (collection === nsids.FyiFrontpageFeedPost) {
-    const record = await atproto.fyi.frontpage.feed.post.get({ repo, rkey });
-    const subject = record.value.subject;
+  } else if (collection === fyi.frontpage.feed.post.$type) {
+    const record = await atproto.get(fyi.frontpage.feed.post, { repo, rkey });
+    const subjectResult = fyi.frontpage.feed.post.urlSubject.$safeValidate(
+      record.value.subject,
+    );
     invariant(
-      FyiFrontpageFeedPost.isUrlSubject(subject),
+      subjectResult.success,
       `Received non-url subject in frontpage feed post: at://${repo}/${collection}/${rkey}#${record.cid}`,
+    );
+    const cid = record.cid;
+    invariant(
+      cid,
+      `Missing CID for frontpage feed post at://${repo}/${collection}/${rkey}`,
     );
     return {
       title: record.value.title,
-      url: subject.url,
+      url: subjectResult.value.url,
       createdAt: new Date(record.value.createdAt),
-      cid: record.cid,
+      cid,
       $type: record.value.$type,
     };
   } else {
@@ -150,13 +161,18 @@ async function hydrateComment(
   $type: CommentCollectionType;
 }> {
   const atproto = await getAtprotoClientFromRepo(repo);
-  if (collection === nsids.FyiUnravelFrontpageComment) {
-    const record = await atproto.fyi.unravel.frontpage.comment.get({
+  if (collection === fyi.unravel.frontpage.comment.$type) {
+    const record = await atproto.get(fyi.unravel.frontpage.comment, {
       repo,
       rkey,
     });
+    const cid = record.cid;
+    invariant(
+      cid,
+      `Missing CID for comment at://${repo}/${collection}/${rkey}`,
+    );
     return {
-      cid: record.cid,
+      cid,
       content: record.value.content,
       createdAt: new Date(record.value.createdAt),
       parentUri: record.value.parent
@@ -165,14 +181,21 @@ async function hydrateComment(
       postUri: new AtUri(record.value.post.uri),
       $type: record.value.$type,
     };
-  } else if (collection === nsids.FyiFrontpageFeedComment) {
-    const record = await atproto.fyi.frontpage.feed.comment.get({
+  } else if (collection === fyi.frontpage.feed.comment.$type) {
+    const record = await atproto.get(fyi.frontpage.feed.comment, {
       repo,
       rkey,
     });
+    const cid = record.cid;
+    invariant(
+      cid,
+      `Missing CID for comment at://${repo}/${collection}/${rkey}`,
+    );
 
     const blockContents = record.value.blocks.flatMap((block) => {
-      if (FyiFrontpageRichtextBlock.isPlaintextParagraph(block.content)) {
+      if (
+        fyi.frontpage.richtext.block.plaintextParagraph.matches(block.content)
+      ) {
         return [block.content.text];
       } else {
         return [];
@@ -185,7 +208,7 @@ async function hydrateComment(
     );
 
     return {
-      cid: record.cid,
+      cid,
       content: blockContents.join("\n\n"),
       createdAt: new Date(record.value.createdAt),
       parentUri: record.value.parent
@@ -248,7 +271,7 @@ export async function handleComment({ op, repo, rkey }: HandlerInput) {
         await dbNotification.createNotification({
           commentId: createdComment.id,
           did: didToNotify,
-          reason: parent ? "commentReply" : "postComment",
+          reason: parentData ? "commentReply" : "postComment",
         });
       }
     }
@@ -302,16 +325,18 @@ async function hydrateVote(
 }> {
   const atproto = await getAtprotoClientFromRepo(repo);
   let record;
-  if (collection === nsids.FyiUnravelFrontpageVote) {
-    record = await atproto.fyi.unravel.frontpage.vote.get({ repo, rkey });
-  } else if (collection === nsids.FyiFrontpageFeedVote) {
-    record = await atproto.fyi.frontpage.feed.vote.get({ repo, rkey });
+  if (collection === fyi.unravel.frontpage.vote.$type) {
+    record = await atproto.get(fyi.unravel.frontpage.vote, { repo, rkey });
+  } else if (collection === fyi.frontpage.feed.vote.$type) {
+    record = await atproto.get(fyi.frontpage.feed.vote, { repo, rkey });
   } else {
     throw new Error(`Unknown collection for vote hydration: ${collection}`);
   }
 
+  const cid = record.cid;
+  invariant(cid, `Missing CID for vote at://${repo}/${collection}/${rkey}`);
   return {
-    cid: record.cid,
+    cid,
     createdAt: new Date(record.value.createdAt),
     subject: {
       uri: new AtUri(record.value.subject.uri),
@@ -326,8 +351,8 @@ export async function handleVote({ op, repo, rkey }: HandlerInput) {
     const vote = await hydrateVote(repo, op.path.collection, rkey);
 
     switch (vote.subject.uri.collection) {
-      case nsids.FyiUnravelFrontpagePost:
-      case nsids.FyiFrontpageFeedPost: {
+      case fyi.unravel.frontpage.post.$type:
+      case fyi.frontpage.feed.post.$type: {
         if (await dbVote.uncached_doesPostVoteExist(repo, rkey)) {
           await dbVote.updatePostVote({
             authorDid: repo,
@@ -357,8 +382,8 @@ export async function handleVote({ op, repo, rkey }: HandlerInput) {
         }
         break;
       }
-      case nsids.FyiUnravelFrontpageComment:
-      case nsids.FyiFrontpageFeedComment: {
+      case fyi.unravel.frontpage.comment.$type:
+      case fyi.frontpage.feed.comment.$type: {
         if (await dbVote.uncached_doesCommentVoteExist(repo, rkey)) {
           await dbVote.updateCommentVote({
             authorDid: repo,

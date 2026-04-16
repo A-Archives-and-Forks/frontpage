@@ -4,9 +4,11 @@ import { ensureUser } from "../data/user";
 import { DataLayerError } from "../data/error";
 import { invariant } from "../utils";
 import { TID } from "@atproto/common-web";
+import { l } from "@atproto/lex";
+import * as fyi from "@repo/frontpage-atproto-client/fyi";
 import { type DID } from "../data/atproto/did";
 import { after } from "next/server";
-import { getAtprotoClient, nsids } from "../data/atproto/repo";
+import { getAtprotoClient } from "../data/atproto/repo";
 
 export type ApiCreatePostInput = {
   authorDid: DID;
@@ -26,29 +28,32 @@ export async function createPost({
   }
 
   const rkey = TID.next().toString();
+  if (!l.isUriString(url)) {
+    throw new DataLayerError("Invalid URL");
+  }
   try {
     const dbCreatedPost = await db.createPost({
       post: { title, url, createdAt: new Date() },
       rkey,
       authorDid: user.did,
       status: "pending",
-      collection: nsids.FyiUnravelFrontpagePost,
+      collection: fyi.unravel.frontpage.post.$type,
     });
     invariant(dbCreatedPost, "Failed to insert post in database");
 
     const atproto = getAtprotoClient();
+    // TODO: We should create this up front to take advantage of validation, but it requires some refactors that relate to fixing bugs with handling both lexicon types.
+    // Will be handled in #327
+    const record = fyi.unravel.frontpage.post.$build({
+      title,
+      url,
+      createdAt: l.currentDatetimeString(),
+    });
     after(() =>
-      atproto.fyi.unravel.frontpage.post.create(
-        {
-          repo: user.did,
-          rkey,
-        },
-        {
-          title: title,
-          url: url,
-          createdAt: new Date().toISOString(),
-        },
-      ),
+      atproto.create(fyi.unravel.frontpage.post, record, {
+        repo: user.did,
+        rkey,
+      }),
     );
 
     return { rkey };
@@ -69,7 +74,7 @@ export async function deletePost({ authorDid, rkey }: db.DeletePostInput) {
   try {
     const atproto = getAtprotoClient();
     after(() =>
-      atproto.fyi.unravel.frontpage.post.delete({
+      atproto.delete(fyi.unravel.frontpage.post, {
         repo: authorDid,
         rkey,
       }),

@@ -6,15 +6,10 @@ import * as schema from "@/lib/schema";
 import { bannedUserSubQuery, postVisibilityFilters } from "./visibility";
 import { type FeedSlug } from "@/lib/feed-constants";
 import { exhaustiveCheck, invariant } from "@/lib/utils";
-import { type FyiFrontpageFeedGetFeedSkeleton } from "@repo/frontpage-atproto-client";
+import type * as fyi from "@repo/frontpage-atproto-client/fyi";
+import { type PostCollectionType } from "../atproto/repo";
 
-function buildAtUri(
-  authorDid: string,
-  collection: string,
-  rkey: string,
-): string {
-  return `at://${authorDid}/${collection}/${rkey}`;
-}
+type FeedSkeletonOutput = fyi.frontpage.feed.getFeedSkeleton.$OutputBody;
 
 const CURSOR_SEPARATOR = "::";
 
@@ -57,19 +52,17 @@ function toSkeletonResult<
   TRow extends {
     id: number;
     authorDid: string;
-    collection: string;
+    collection: PostCollectionType;
     rkey: string;
   },
 >(
   rows: TRow[],
   limit: number,
   serializeCursorValue: (row: TRow) => string,
-): FyiFrontpageFeedGetFeedSkeleton.OutputSchema {
-  const feed: FyiFrontpageFeedGetFeedSkeleton.OutputSchema["feed"] = rows.map(
-    (row) => ({
-      post: buildAtUri(row.authorDid, row.collection, row.rkey),
-    }),
-  );
+): FeedSkeletonOutput {
+  const feed: FeedSkeletonOutput["feed"] = rows.map((row) => ({
+    post: `at://${row.authorDid}/${row.collection}/${row.rkey}`,
+  }));
 
   // Only return a cursor if we got a full page — fewer rows means we're at the end.
   // Note: if the total post count is an exact multiple of limit, the last full page
@@ -91,7 +84,7 @@ function toSkeletonResult<
 function getHotSkeleton(
   limit: number,
   cursor: string | undefined,
-): Promise<FyiFrontpageFeedGetFeedSkeleton.OutputSchema> {
+): Promise<FeedSkeletonOutput> {
   const parsed = parseCompoundCursor(cursor);
 
   let cursorFilter: SQL | undefined;
@@ -124,7 +117,7 @@ function getHotSkeleton(
 function getNewSkeleton(
   limit: number,
   cursor: string | undefined,
-): Promise<FyiFrontpageFeedGetFeedSkeleton.OutputSchema> {
+): Promise<FeedSkeletonOutput> {
   const parsed = parseCompoundCursor(cursor);
 
   let cursorFilter: SQL | undefined;
@@ -158,7 +151,7 @@ function getNewSkeleton(
 function getTopSkeleton(
   limit: number,
   cursor: string | undefined,
-): Promise<FyiFrontpageFeedGetFeedSkeleton.OutputSchema> {
+): Promise<FeedSkeletonOutput> {
   const parsed = parseCompoundCursor(cursor);
 
   let cursorFilter: SQL | undefined;
@@ -197,7 +190,7 @@ export function getLocalFeedSkeleton(
   slug: FeedSlug,
   limit: number,
   cursor: string | undefined,
-): Promise<FyiFrontpageFeedGetFeedSkeleton.OutputSchema> {
+): Promise<FeedSkeletonOutput> {
   switch (slug) {
     case "hot":
       return getHotSkeleton(limit, cursor);

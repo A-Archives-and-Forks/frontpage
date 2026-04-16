@@ -5,17 +5,20 @@ import { ensureUser } from "../data/user";
 import { type DID } from "../data/atproto/did";
 import { invariant } from "../utils";
 import { TID } from "@atproto/common-web";
+import { l } from "@atproto/lex";
+import * as com from "@repo/frontpage-atproto-client/com";
+import * as fyi from "@repo/frontpage-atproto-client/fyi";
 import { after } from "next/server";
-import { getAtprotoClient, nsids } from "../data/atproto/repo";
+import { getAtprotoClient } from "../data/atproto/repo";
 
-// TODO: Should use a strongRef
+// TODO: Should use the strong ref type instead of creating our own. This matches the data layer conventions that we have, where the api accepts generic input
 export type ApiCreateVoteInput = {
   rkey: string;
   cid: string;
   authorDid: DID;
   collection:
-    | typeof nsids.FyiUnravelFrontpagePost
-    | typeof nsids.FyiUnravelFrontpageComment;
+    | typeof fyi.unravel.frontpage.post.$type
+    | typeof fyi.unravel.frontpage.comment.$type;
 };
 
 export async function createVote(subject: ApiCreateVoteInput) {
@@ -23,7 +26,7 @@ export async function createVote(subject: ApiCreateVoteInput) {
 
   const rkey = TID.next().toString();
   try {
-    if (subject.collection == nsids.FyiUnravelFrontpagePost) {
+    if (subject.collection == fyi.unravel.frontpage.post.$type) {
       const dbCreatedVote = await db.createPostVote({
         repo: user.did,
         rkey,
@@ -33,11 +36,11 @@ export async function createVote(subject: ApiCreateVoteInput) {
           cid: subject.cid,
         },
         status: "pending",
-        collection: nsids.FyiUnravelFrontpageVote,
+        collection: fyi.unravel.frontpage.vote.$type,
       });
 
       invariant(dbCreatedVote, "Failed to insert post vote in database");
-    } else if (subject.collection == nsids.FyiUnravelFrontpageComment) {
+    } else if (subject.collection == fyi.unravel.frontpage.comment.$type) {
       const dbCreatedVote = await db.createCommentVote({
         repo: user.did,
         rkey,
@@ -47,27 +50,26 @@ export async function createVote(subject: ApiCreateVoteInput) {
           cid: subject.cid,
         },
         status: "pending",
-        collection: nsids.FyiUnravelFrontpageVote,
+        collection: fyi.unravel.frontpage.vote.$type,
       });
 
       invariant(dbCreatedVote, "Failed to insert comment vote in database");
     }
-
     const atproto = getAtprotoClient();
+    // TODO: We should create this up front to take advantage of validation, but it requires some refactors that relate to fixing bugs with handling both lexicon types.
+    // Will be handled in #327
+    const record = fyi.unravel.frontpage.vote.$build({
+      subject: com.atproto.repo.strongRef.$build({
+        uri: `at://${subject.authorDid}/${subject.collection}/${subject.rkey}`,
+        cid: subject.cid,
+      }),
+      createdAt: l.currentDatetimeString(),
+    });
     after(() =>
-      atproto.fyi.unravel.frontpage.vote.create(
-        {
-          rkey,
-          repo: user.did,
-        },
-        {
-          subject: {
-            uri: `at://${subject.authorDid}/${subject.collection}/${subject.rkey}`,
-            cid: subject.cid,
-          },
-          createdAt: new Date().toISOString(),
-        },
-      ),
+      atproto.create(fyi.unravel.frontpage.vote, record, {
+        rkey,
+        repo: user.did,
+      }),
     );
   } catch (e) {
     await db.deleteVote({ authorDid: user.did, rkey });
@@ -85,7 +87,7 @@ export async function deleteVote({ authorDid, rkey }: db.DeleteVoteInput) {
   try {
     const atproto = getAtprotoClient();
     after(() =>
-      atproto.fyi.unravel.frontpage.vote.delete({
+      atproto.delete(fyi.unravel.frontpage.vote, {
         repo: user.did,
         rkey,
       }),
