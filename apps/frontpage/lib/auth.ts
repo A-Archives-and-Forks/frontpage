@@ -521,6 +521,7 @@ export async function fetchAuthenticatedAtproto(
   });
 
   const makeRequest = (dpopNonce: string) => {
+    console.log("Making authenticated request with: ", input, init?.body);
     // It's important to reconstruct the request because we can't send the same body readable stream twice
     const request = new Request(input, init);
     return protectedResourceRequest(
