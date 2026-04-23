@@ -521,7 +521,6 @@ export async function fetchAuthenticatedAtproto(
   });
 
   const makeRequest = (dpopNonce: string) => {
-    console.log("Making authenticated request with: ", input, init?.body);
     // It's important to reconstruct the request because we can't send the same body readable stream twice
     const request = new Request(input, init);
     return protectedResourceRequest(
@@ -537,6 +536,7 @@ export async function fetchAuthenticatedAtproto(
           input: RequestInfo | URL,
           init?: RequestInit,
         ) => {
+          console.log("Making authenticated request with: ", input, init?.body);
           return fetch(input, {
             ...init,
             // @ts-expect-error https://github.com/node-fetch/node-fetch/issues/1769
